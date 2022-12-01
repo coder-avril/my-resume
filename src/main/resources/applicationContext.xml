@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context" xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd http://www.springframework.org/schema/aop https://www.springframework.org/schema/aop/spring-aop.xsd">
+    <!-- Mybatis和事务管理 -->
+    <!-- 扫描需要在IoC容器里面创建的包 -->
+    <context:component-scan base-package="com.lding.resume.service" />
+    <!-- 1. 获取db配置文件 -->
+    <context:property-placeholder location="classpath:db.properties" ignore-unresolvable="true" />
+    <!-- 2. 数据源配置（druid连接池）默认自动提交事务 -->
+    <bean id="dataSource" class="com.alibaba.druid.pool.DruidDataSource">
+        <property name="driverClassName" value="${druid.driverClassName}" />
+        <property name="username" value="${druid.username}" />
+        <property name="password" value="${druid.password}" />
+        <property name="url" value="${druid.url}" />
+        <property name="initialSize" value="${druid.initialSize}" />
+        <property name="maxActive" value="${druid.maxActive}" />
+        <property name="maxWait" value="${druid.maxWait}" />
+    </bean>
+    <!-- 3. 配置SqlSessionFactoryBean -->
+    <bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <!-- 3-1. 引用数据源 -->
+        <property name="dataSource" ref="dataSource" />
+        <!-- 3-2. 导入领域模型所在包 -->
+        <property name="typeAliasesPackage" value="com.lding.domain" />
+        <!-- 3-3. pageHelper插件-->
+        <property name="plugins">
+            <array>
+                <bean class="com.github.pagehelper.PageInterceptor">
+                    <property name="properties">
+                        <!-- 如有需要可以添加配置（一般默认即可 -->
+                        <value>
+                            helperDialect=mysql
+                            reasonable=true
+                            supportMethodsArguments=true
+                            params=count=countSql
+                            autoRuntimeDialect=true
+                        </value>
+                    </property>
+                </bean>
+            </array>
+        </property>
+        <!-- 3-4. 添加实体映射文件 -->
+        <property name="mapperLocations">
+            <array>
+                <value>classpath:mappers/*.xml</value>
+            </array>
+        </property>
+        <!-- 3-5. 开启驼峰自动映射 -->
+        <property name="configuration">
+            <bean class="org.apache.ibatis.session.Configuration">
+                <property name="mapUnderscoreToCamelCase" value="true" />
+            </bean>
+        </property>
+    </bean>
+    <!-- 4. 配置MapperScannerConfigurer -->
+    <!-- 用于扫描Dao -->
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <!-- SqlSessionFactoryBean的id -->
+        <property name="sqlSessionFactoryBeanName" value="sqlSessionFactory" />
+        <!-- dao的包名 -->
+        <property name="basePackage" value="com.lding.resume.dao"/>
+    </bean>
+    <!-- 5. 管理事务 -->
+    <!-- 5-1. 配置事务管理器 -->
+    <bean id="txManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <!-- 数据源（这里配置的是druid） -->
+        <property name="dataSource" ref="dataSource" />
+    </bean>
+    <tx:annotation-driven transaction-manager="txManager" />
+    <!-- 5-2. 添加附加代码（声明式事务管理） -->
+    <tx:advice id="txAdvice" transaction-manager="txManager">
+        <tx:attributes>
+            <!-- Spring会在以下方法前后增加事务管理代码 默认事务的传播行为：REQUIRED -->
+            <tx:method name="get*" timeout="10"/>
+        </tx:attributes>
+    </tx:advice>
+    <!-- 5-3. 添加切面 -->
+    <aop:config proxy-target-class="true">
+        <!-- 切入点 -->
+        <aop:pointcut id="txPc" expression="within(com.lding.resume.service..*)" />
+        <!-- 附加代码 + 切入点 -->
+        <aop:advisor advice-ref="txAdvice" pointcut-ref="txPc" />
+    </aop:config>
+
+    <!-- 项目个别对应 -->
+    <!-- 1. 获取图片配置文件并将bean加入容器 -->
+    <context:property-placeholder location="classpath:fileUpload.properties" ignore-unresolvable="true"/>
+    <bean id="imageUploader" class="com.lding.resume.config.ImageUploader">
+        <property name="basePath" value="${fileUpload.basePath}" />
+        <property name="imagePath" value="${fileUpload.imagePath}" />
+    </bean>
+
+</beans>

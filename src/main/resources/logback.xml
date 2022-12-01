@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<configuration>
+    <!-- 抽取公共内容 -->
+    <property name="CONSOLE_PATTERN" value="%d{HH:mm:ss.SSS} [%highlight(%-5p)] %c: %m%n"/>
+    <property name="CHARSET" value="UTF-8"/>
+    <!-- 控制台Appender -->
+    <appender name="myConsole" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <charset>${CHARSET}</charset>
+            <pattern>${CONSOLE_PATTERN}</pattern>
+        </encoder>
+    </appender>
+    <!-- 设置logger -->
+    <root level="DEBUG">
+        <appender-ref ref="myConsole"/>
+    </root>
+</configuration>

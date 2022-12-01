@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lding.resume.dao.ExperienceDao">
+    <select id="getAll" resultMap="rmExperience">
+        SELECT
+            t1.*, t2.id AS t2_id, t2.name AS t2_name, t2.website AS t2_website
+        FROM experience t1 INNER JOIN company t2 ON t1.company_id = t2.id
+    </select>
+    <!-- 多表查询 方式1 通过resultMap的形式来描述返回结果 -->
+    <resultMap id="rmExperience" type="com.lding.resume.domain.Experience">
+        <result property="company.id" column="t2_id" />
+        <result property="company.name" column="t2_name" />
+        <result property="company.website" column="t2_website" />
+    </resultMap>
+</mapper>

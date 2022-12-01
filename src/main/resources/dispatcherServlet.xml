@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd http://www.springframework.org/schema/mvc https://www.springframework.org/schema/mvc/spring-mvc.xsd">
+    <!-- 扫描需要在IoC容器里面创建的包 -->
+    <context:component-scan base-package="com.lding.resume.controller" />
+    <mvc:annotation-driven conversion-service="conversionService">
+        <!-- 添加message转换器 -->
+        <mvc:message-converters>
+            <bean class="org.springframework.http.converter.StringHttpMessageConverter">
+                <property name="defaultCharset" value="UTF-8"/>
+            </bean>
+            <bean class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter">
+                <property name="defaultCharset" value="UTF-8" />
+            </bean>
+        </mvc:message-converters>
+    </mvc:annotation-driven>
+
+    <!-- 将静态资源交给服务器默认Servlet去处理 -->
+    <mvc:default-servlet-handler />
+
+    <!-- 注册自定义的转换器（配置factoryBean） -->
+    <!-- 固定id="conversionService" 这个不可以变，Spring内部会用到这个id -->
+    <bean id="conversionService"
+          class="org.springframework.context.support.ConversionServiceFactoryBean">
+        <property name="converters">
+            <set>
+                <!-- 配置自定义转换器 -->
+                <bean class="com.lding.resume.config.DateConverter" >
+                    <!-- 改为通过传list的形式 -->
+                    <property name="formats">
+                        <list>
+                            <value>yyyy/MM/dd</value>
+                            <value>yyyy-MM-dd</value>
+                            <value>MM/dd/yyyy</value>
+                        </list>
+                    </property>
+                </bean>
+            </set>
+        </property>
+    </bean>
+
+    <!-- MultipartFile 添加CommonsMultpartResolver到IoC容器-->
+    <bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+        <!-- 解析multipart参数，防止乱码 -->
+        <property name="defaultEncoding" value="UTF-8" />
+    </bean>
+
+    <!-- 公共前缀和后缀 -->
+    <bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+        <property name="order" value="1" />
+        <property name="prefix" value="/WEB-INF/front/" />
+        <property name="suffix" value=".jsp" />
+    </bean>
+    <bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+        <property name="order" value="0" />
+        <property name="prefix" value="/WEB-INF/admin/" />
+        <property name="suffix" value=".jsp" />
+        <!-- 自定义的view 优先级是0 最高 -->
+        <property name="viewClass" value="com.lding.resume.config.MyView" />
+    </bean>
+
+    <!-- 配置拦截器 -->
+    <mvc:interceptors>
+        <mvc:interceptor>
+            <!-- 需要拦截的路径：**代表当前路径下的所有内容（包括子目录） -->
+            <mvc:mapping path="/**"/>
+            <!-- 排除asset目录下的所有内容 -->
+            <mvc:exclude-mapping path="/asset/**"/>
+            <!-- 拦截器对象 -->
+            <bean class="com.lding.resume.config.MyInterceptor" />
+        </mvc:interceptor>
+    </mvc:interceptors>
+
+    <!-- 配置静态资源映射 注意都是${ctx}开头-->
+    <mvc:resources mapping="/user-img/**" location="file:///D:/work-space/tempFile/user-img/" />
+</beans>
